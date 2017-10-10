@@ -6,102 +6,53 @@ using UnityEngine.UI;
 
 namespace UISupport
 {
-
     public class UIToggle : MonoBehaviour
     {
         [SerializeField]
-        Button[] defaultSelectButtons;
+        Toggle defaultSelect;
 
-        List<Button> toggleButtons = new List<Button>();
-
-        Dictionary<Button, ColorBlock> buttonColorBlocks = new Dictionary<Button, ColorBlock>();
-
-        // Button.Colors
-        // normal : 何もしていない
-        // highlight : onmouseover
-        // pressed : onmousedown
-        // disable : intaractive == false;
+        List<Toggle> toggleList = new List<Toggle>();
+        Dictionary<Toggle, bool> localState = new Dictionary<Toggle, bool>();
 
         private void OnEnable()
         {
-            Initialize();
+            Initialize(defaultSelect);
         }
 
         private void OnDisable()
         {
-            RemoveClickListener();
         }
 
         private void OnDestroy()
         {
-            RemoveClickListener();
+            
         }
 
-        void RemoveClickListener()
+        void Initialize(Toggle selected = null)
         {
-            toggleButtons.Clear();
-        }
+            toggleList.Clear();
 
-        void Initialize(params Button[] enabledList)
-        {
-            toggleButtons.Clear();
-            var buttons = gameObject.GetComponentsInChildren<Button>().ToList();
-            List<Button> enabled = enabledList.ToList();
+            var tl = GetComponentsInChildren<Toggle>().ToList();
 
-            buttons.ForEach(b =>
+            tl.ForEach(toggle =>
             {
-                b.onClick.AddListener(() => OnClickEventListener(b));
-                ColorBlock cb = new ColorBlock();
-                cb = b.colors;
-                buttonColorBlocks.Add(b,cb);
-
-                if( enabled.Contains(b) )
-                {
-                    SetSelectableColor(b);
-                }
-                else
-                {
-                    SetUnselectableColor(b);
-                }
+                
+                toggle.isOn = selected == toggle;
+                toggle.onValueChanged.AddListener((state) => OnValueChangeEvent(toggle, state)); // isOnで値を入れられてから設定
+                localState.Add(toggle, toggle.isOn);
             });
 
-            toggleButtons = buttons;
+            toggleList = tl;
         }
 
-
-        void OnClickEventListener(Button b)
+        void OnValueChangeEvent(Toggle t,bool state)
         {
-            SetSelectableColor(b);
+//            toggleList.Where(lt => (lt != t)).ToList().ForEach(lt => lt.isOn = false); // これ最後に選択したToggle保持してそいつをfalseにすれば良いんじゃないかなぁ...
+            
+            t.isOn = localState[t] | state;
+            Debug.LogFormat("{0} => {1}({2},{3})",t.name,state,t.isOn,localState[t]);
+            localState[t] = t.isOn;
         }
 
-        void SetSelectableColor(Button b)
-        {
-            buttonColorBlocks.Keys.Where(kb => kb.colors.normalColor == buttonColorBlocks[kb].normalColor).ToList().ForEach(db => SetUnselectableColor(db));
-
-            // TODO: tintして欲しい
-            var cb = b.colors;
-            cb.normalColor = buttonColorBlocks[b].normalColor;
-            b.colors = cb;
-        }
-
-        void SetUnselectableColor(Button b)
-        {
-            // TODO: tintして欲しい
-            var cb = b.colors;
-            cb.normalColor = buttonColorBlocks[b].disabledColor;
-            b.colors = cb;
-        }
-
-        // Use this for initialization
-        void Start()
-        {
-
-        }
-
-        // Update is called once per frame
-        void Update()
-        {
-
-        }
     }
 }
